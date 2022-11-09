@@ -25,7 +25,7 @@ import org.apache.openwhisk.spi.Spi
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.math.max
+// import scala.math.max
 
 case class ContainerArgsConfig(network: String,
                                dnsServers: Seq[String] = Seq.empty,
@@ -72,7 +72,8 @@ case class ContainerPoolConfig(userMemory: ByteSize,
   private val totalShare = 1024.0 // This is a pre-defined value coming from docker and not our hard-coded value.
   // Grant more CPU to a container if it allocates more memory.
   def cpuShare(reservedMemory: ByteSize) =
-    max((totalShare / (userMemory.toBytes / reservedMemory.toBytes)).toInt, 2) // The minimum allowed cpu-shares is 2
+    // max((totalShare / (userMemory.toBytes / reservedMemory.toBytes)).toInt, 2) // The minimum allowed cpu-shares is 2
+    1024
 }
 
 case class PrewarmContainerCreationConfig(maxConcurrent: Int, creationDelay: FiniteDuration) {
