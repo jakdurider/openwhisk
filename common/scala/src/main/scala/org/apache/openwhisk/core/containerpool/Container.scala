@@ -82,7 +82,7 @@ trait Container {
 
   /** maxConcurrent+timeout are cached during first init, so that resuming connections can reference */
   protected var containerHttpMaxConcurrent: Int = 1
-  protected var containerHttpTimeout: FiniteDuration = 60.seconds
+  protected var containerHttpTimeout: FiniteDuration = 10000.seconds
 
   def containerId: ContainerId = id
 

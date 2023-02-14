@@ -1783,7 +1783,7 @@
           "type": "integer",
           "format": "int32",
           "description": "timeout in milliseconds",
-          "default": 60000
+          "default": 10000000
         },
         "memory": {
           "type": "integer",

@@ -174,6 +174,7 @@ class DockerClient(dockerHost: Option[String] = None,
 
   def pause(id: ContainerId)(implicit transid: TransactionId): Future[Unit] =
     runCmd(Seq("pause", id.asString), config.timeouts.pause).map(_ => ())
+    // runCmd(Seq("rm", "-f", id.asString), config.timeouts.rm).map(_ => ())
 
   def unpause(id: ContainerId)(implicit transid: TransactionId): Future[Unit] =
     runCmd(Seq("unpause", id.asString), config.timeouts.unpause).map(_ => ())

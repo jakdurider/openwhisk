@@ -91,9 +91,9 @@ object Main {
     try {
       executeWithSystem(conf)
     } finally {
-      Await.result(Http().shutdownAllConnectionPools(), 60.seconds)
+      Await.result(Http().shutdownAllConnectionPools(), 10000.seconds)
       actorSystem.terminate()
-      Await.result(actorSystem.whenTerminated, 60.seconds)
+      Await.result(actorSystem.whenTerminated, 10000.seconds)
     }
   }
 
