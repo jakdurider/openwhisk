@@ -25,7 +25,7 @@ import org.apache.openwhisk.spi.Spi
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.math.max
+// import scala.math.max
 
 case class ContainerArgsConfig(network: String,
                                dnsServers: Seq[String] = Seq.empty,
