@@ -95,7 +95,12 @@ object DockerContainer {
       "--memory-swap",
       s"${memory.toMB}m",
       "--network",
-      network) ++
+      network,
+      "--device=/dev/sgx_enclave:/dev/sgx_enclave",
+      "--device=/dev/sgx_provision:/dev/sgx_provision",
+      "-v", "/dev/log:/dev/log",
+      "-v", "aesmd-socket:/var/run/aesmd"
+      ) ++
       environmentArgs ++
       dnsServers.flatMap(d => Seq("--dns", d)) ++
       dnsSearch.flatMap(d => Seq("--dns-search", d)) ++
