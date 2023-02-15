@@ -74,9 +74,9 @@ protected[core] object TimeLimit extends ArgNormalizer[TimeLimit] {
     require(
       duration >= MIN_DURATION,
       s"duration ${duration.toMillis} milliseconds below allowed threshold of ${MIN_DURATION.toMillis} milliseconds")
-    require(
-      duration <= MAX_DURATION,
-      s"duration ${duration.toMillis} milliseconds exceeds allowed threshold of ${MAX_DURATION.toMillis} milliseconds")
+    // require(
+    //   duration <= MAX_DURATION,
+    //   s"duration ${duration.toMillis} milliseconds exceeds allowed threshold of ${MAX_DURATION.toMillis} milliseconds")
     new TimeLimit(duration)
   }
 
