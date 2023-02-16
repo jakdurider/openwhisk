@@ -62,6 +62,9 @@ object Container {
 
   protected[containerpool] val config: ContainerPoolConfig =
     loadConfigOrThrow[ContainerPoolConfig](ConfigKeys.containerPool)
+
+  protected[containerpool] var master_init: Boolean = false
+  protected[containerpool] var master_addr: ContainerAddress = new ContainerAddress("0", 0)
 }
 
 /**
@@ -122,6 +125,9 @@ trait Container {
     containerHttpMaxConcurrent = maxConcurrent
     containerHttpTimeout = timeout
     val body = JsObject("value" -> initializer)
+    if (Container.master_init) {
+      return Future.successful(Interval.zero)
+    }
     callContainer("/init", body, timeout, maxConcurrent, retry = true)
       .andThen { // never fails
         case Success(r: RunResult) =>
@@ -174,7 +180,7 @@ trait Container {
 
     val parameterWrapper = JsObject("value" -> parameters)
     val body = JsObject(parameterWrapper.fields ++ environment.fields)
-    callContainer("/run", body, timeout, maxConcurrent, retry = false, reschedule)
+    val ret = callContainer("/run", body, timeout, maxConcurrent, retry = false, reschedule)
       .andThen { // never fails
         case Success(r: RunResult) =>
           transid.finished(
@@ -202,6 +208,12 @@ trait Container {
 
         (result.interval, response)
       }
+    if (actionName.contains("gramine") && !Container.master_init) {
+      Container.master_init = true
+      Container.master_addr = addr
+      println(s"gramine master found!! addr: ${addr}")
+    }
+    return ret
   }
 
   /**

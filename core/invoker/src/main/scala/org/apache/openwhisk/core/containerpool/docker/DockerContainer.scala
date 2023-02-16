@@ -99,7 +99,9 @@ object DockerContainer {
       "--device=/dev/sgx_enclave:/dev/sgx_enclave",
       "--device=/dev/sgx_provision:/dev/sgx_provision",
       "-v", "/dev/log:/dev/log",
-      "-v", "aesmd-socket:/var/run/aesmd"
+      "-v", "aesmd-socket:/var/run/aesmd",
+      "-v", "/sharedVolume:/sharedVolume",
+      "--privileged" 
       ) ++
       environmentArgs ++
       dnsServers.flatMap(d => Seq("--dns", d)) ++
@@ -227,21 +229,40 @@ class DockerContainer(protected val id: ContainerId,
     reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
     val started = Instant.now()
     val http = httpConnection.getOrElse {
-      val conn = if (Container.config.akkaClient) {
-        new AkkaContainerClient(
-          addr.host,
-          addr.port,
-          timeout,
-          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
-          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
-          1024)
+      val conn = if (!Container.master_init) {
+        if (Container.config.akkaClient) {
+          new AkkaContainerClient(
+            addr.host,
+            addr.port,
+            timeout,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+            1024)
+        } else {
+          new ApacheBlockingContainerClient(
+            s"${addr.host}:${addr.port}",
+            timeout,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+            maxConcurrent)
+        }
       } else {
-        new ApacheBlockingContainerClient(
-          s"${addr.host}:${addr.port}",
-          timeout,
-          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
-          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
-          maxConcurrent)
+        if (Container.config.akkaClient) {
+          new AkkaContainerClient(
+            Container.master_addr.host,
+            Container.master_addr.port,
+            timeout,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+            1024)
+        } else {
+          new ApacheBlockingContainerClient(
+            s"${Container.master_addr.host}:${Container.master_addr.port}",
+            timeout,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+            ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+            maxConcurrent)
+        }
       }
       httpConnection = Some(conn)
       conn
