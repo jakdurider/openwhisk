@@ -220,7 +220,7 @@ class DockerContainer(protected val id: ContainerId,
     }
   }
 
-  protected def callContainer_init(
+  override protected def callContainer_init(
                                      path: String,
                                      body: JsObject,
                                      timeout: FiniteDuration,
@@ -289,7 +289,7 @@ class DockerContainer(protected val id: ContainerId,
         }
   }
 
-  protected def callContainer_run(
+  override protected def callContainer_run(
     path: String,
     body: JsObject,
     timeout: FiniteDuration,
@@ -337,6 +337,16 @@ class DockerContainer(protected val id: ContainerId,
           .fold(_.map(Left(_)), right => Future.successful(Right(right)))
           .map(res => RunResult(Interval(started, finished), res))
       }
+  }
+
+  override protected def callContainer(
+                                              path: String,
+                                              body: JsObject,
+                                              timeout: FiniteDuration,
+                                              maxConcurrent: Int,
+                                              retry: Boolean = false,
+                                              reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
+    callContainer_run(path, body, timeout, maxConcurrent, retry, reschedule)
   }
 
   /**
