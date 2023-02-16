@@ -128,7 +128,7 @@ trait Container {
     if (Container.master_init) {
       return Future.successful(Interval.zero)
     }
-    callContainer("/init", body, timeout, maxConcurrent, retry = true)
+    callContainer_init("/init", body, timeout, maxConcurrent, retry = true)
       .andThen { // never fails
         case Success(r: RunResult) =>
           transid.finished(
@@ -180,7 +180,7 @@ trait Container {
 
     val parameterWrapper = JsObject("value" -> parameters)
     val body = JsObject(parameterWrapper.fields ++ environment.fields)
-    val ret = callContainer("/run", body, timeout, maxConcurrent, retry = false, reschedule)
+    val ret = callContainer_run("/run", body, timeout, maxConcurrent, retry = false, reschedule)
       .andThen { // never fails
         case Success(r: RunResult) =>
           transid.finished(
@@ -246,6 +246,24 @@ trait Container {
         RunResult(Interval(started, finished), response)
       }
   }
+  protected def callContainer_init(path: String,
+                              body: JsObject,
+                              timeout: FiniteDuration,
+                              maxConcurrent: Int,
+                              retry: Boolean = false,
+                              reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
+    callContainer(path, body, timeout, maxConcurrent, retry, reschedule)
+  }
+
+  protected def callContainer_run(path: String,
+                                   body: JsObject,
+                                   timeout: FiniteDuration,
+                                   maxConcurrent: Int,
+                                   retry: Boolean = false,
+                                   reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
+    callContainer(path, body, timeout, maxConcurrent, retry, reschedule)
+  }
+
   private def openConnections(timeout: FiniteDuration, maxConcurrent: Int) = {
     if (Container.config.akkaClient) {
       new AkkaContainerClient(

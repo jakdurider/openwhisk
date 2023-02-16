@@ -220,13 +220,13 @@ class DockerContainer(protected val id: ContainerId,
     }
   }
 
-  override protected def callContainer(
-    path: String,
-    body: JsObject,
-    timeout: FiniteDuration,
-    maxConcurrent: Int,
-    retry: Boolean = false,
-    reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
+  protected def callContainer_init(
+                                     path: String,
+                                     body: JsObject,
+                                     timeout: FiniteDuration,
+                                     maxConcurrent: Int,
+                                     retry: Boolean = false,
+                                     reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
     val started = Instant.now()
     val http = httpConnection.getOrElse {
       val conn = if (!Container.master_init) {
@@ -263,6 +263,56 @@ class DockerContainer(protected val id: ContainerId,
             ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
             maxConcurrent)
         }
+      }
+      httpConnection = Some(conn)
+      conn
+    }
+
+    http
+        .post(path, body, retry, reschedule)
+        .flatMap { response =>
+          val finished = Instant.now()
+
+          response.left
+              .map {
+                // Only check for memory exhaustion if there was a
+                // terminal connection error.
+                case error: ConnectionError =>
+                  isOomKilled().map {
+                    case true => MemoryExhausted()
+                    case false => error
+                  }
+                case other => Future.successful(other)
+              }
+              .fold(_.map(Left(_)), right => Future.successful(Right(right)))
+              .map(res => RunResult(Interval(started, finished), res))
+        }
+  }
+
+  protected def callContainer_run(
+    path: String,
+    body: JsObject,
+    timeout: FiniteDuration,
+    maxConcurrent: Int,
+    retry: Boolean = false,
+    reschedule: Boolean = false)(implicit transid: TransactionId): Future[RunResult] = {
+    val started = Instant.now()
+    val http = httpConnection.getOrElse {
+      val conn = if (Container.config.akkaClient) {
+        new AkkaContainerClient(
+          addr.host,
+          addr.port,
+          timeout,
+          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+          1024)
+      } else {
+        new ApacheBlockingContainerClient(
+          s"${addr.host}:${addr.port}",
+          timeout,
+          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_LIMIT,
+          ActivationEntityLimit.MAX_ACTIVATION_ENTITY_TRUNCATION_LIMIT,
+          maxConcurrent)
       }
       httpConnection = Some(conn)
       conn
