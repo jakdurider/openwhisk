@@ -126,6 +126,7 @@ trait Container {
     containerHttpTimeout = timeout
     val body = JsObject("value" -> initializer)
     if (Container.master_init) {
+      callContainer_init("/init", body, timeout, maxConcurrent, retry = true)
       return Future.successful(Interval.zero)
     }
     callContainer_init("/init", body, timeout, maxConcurrent, retry = true)
